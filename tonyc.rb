@@ -1,8 +1,10 @@
-run 'rm readme'
+run 'rm README'
 
 gem 'mislav-will_paginate', :lib => 'will_paginate', :source => 'http://gems.github.com'
 gem 'thoughtbot-shoulda', :lib => 'shoulda', :source => 'http://gems.github.com'
+gem 'thoughtbot-factory_girl', :lib => 'factory_girl',:source => 'http://gems.github.com'
 gem 'nifty-generators', :lib => 'nifty_generators', :source => 'http://gems.github.com'
+gem 'mocha'
 gem 'haml'
 rake "gems:install", :sudo => true
 
@@ -11,11 +13,23 @@ plugin "restful-authentication", :git => 'git://github.com/technoweenie/restful-
 
 # add generation for user/session
 name = ask('What do you want a user to be called?')
-generate :nifty_authentication, name
+generate :nifty_authentication, name, '--haml'
+
+# create helper method for nifty_auth haml so tests don't fail
+generate :nifty_layout, '--haml'
+run 'rm app/views/application.html.haml'
+run 'rm -rf public/stylesheets/sass/'
+
+run 'haml --rails .'
+
+generate :controller, 'overview'
+route "map.root :controller => 'overview'"
+
 rake "db:migrate"
 
 run "rm public/javascripts/*"
 run "curl -L http://jqueryjs.googlecode.com/files/jquery-1.3.2.min.js > public/javascripts/jquery.js"
+run "touch public/javascripts/application.js"
 
 # Well this here is a total hack...
 env = IO.read 'config/environment.rb'
@@ -24,9 +38,6 @@ env.gsub!(/^end$/, "end\n#{ins}") unless env.include?(ins)
 File.open('config/environment.rb', 'w') do |env_out|
 env_out.write(env)
 end
-
-run "rm -rf app/views/"
-run "mkdir app/views"
 
 file 'app/views/layouts/application.html.haml', <<-END
 !!!
